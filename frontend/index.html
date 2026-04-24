@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CareOps — ER Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1117;
+    --surface2: #161b22;
+    --surface3: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --accent: #00d4ff;
+    --red: #ff4d4d;
+    --orange: #ff8c00;
+    --yellow: #ffd700;
+    --green: #00e676;
+    --blue: #4fc3f7;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; }
+
+  /* HEADER */
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 2rem; height:56px;
+    background:var(--surface); border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:100;
+  }
+  .logo { display:flex; align-items:center; gap:10px; }
+  .logo-icon { width:28px; height:28px; background:var(--accent); border-radius:6px;
+    display:flex; align-items:center; justify-content:center; font-weight:600; font-size:13px; color:#000; }
+  .logo-text { font-family:var(--mono); font-size:15px; font-weight:600; letter-spacing:1px; }
+  .logo-sub { font-size:11px; color:var(--muted); font-family:var(--mono); }
+  .header-right { display:flex; align-items:center; gap:16px; }
+  .clock { font-family:var(--mono); font-size:13px; color:var(--accent); }
+  .status-dot { width:8px; height:8px; border-radius:50%; background:var(--green);
+    box-shadow:0 0 8px var(--green); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* NAV TABS */
+  nav { display:flex; gap:0; padding:0 2rem;
+    background:var(--surface); border-bottom:1px solid var(--border); }
+  .tab { padding:12px 20px; font-size:13px; font-family:var(--mono); color:var(--muted);
+    cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; letter-spacing:0.5px; }
+  .tab:hover { color:var(--text); }
+  .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+  /* MAIN */
+  main { padding:1.5rem 2rem; max-width:1600px; margin:0 auto; }
+
+  /* STAT CARDS */
+  .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1.5rem; }
+  .stat-card {
+    background:var(--surface); border:1px solid var(--border); border-radius:8px;
+    padding:1rem 1.25rem; position:relative; overflow:hidden;
+  }
+  .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--accent-color, var(--accent)); }
+  .stat-label { font-size:11px; font-family:var(--mono); color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+  .stat-value { font-size:32px; font-family:var(--mono); font-weight:600; margin:4px 0 2px; }
+  .stat-sub { font-size:11px; color:var(--muted); }
+
+  /* PANELS */
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem; }
+  .grid-3 { display:grid; grid-template-columns:2fr 1fr 1fr; gap:1rem; margin-bottom:1rem; }
+  .panel {
+    background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden;
+  }
+  .panel-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0.75rem 1rem; border-bottom:1px solid var(--border);
+    background:var(--surface2);
+  }
+  .panel-title { font-family:var(--mono); font-size:12px; letter-spacing:1px; color:var(--muted); text-transform:uppercase; }
+  .panel-body { padding:1rem; }
+
+  /* TRIAGE QUEUE */
+  .queue-list { display:flex; flex-direction:column; gap:0.5rem; max-height:340px; overflow-y:auto; }
+  .queue-item {
+    display:grid; grid-template-columns:40px 1fr auto auto;
+    align-items:center; gap:12px;
+    padding:0.75rem; background:var(--surface2); border-radius:6px;
+    border-left:3px solid var(--item-color, var(--border));
+    cursor:pointer; transition:background 0.15s;
+  }
+  .queue-item:hover { background:var(--surface3); }
+  .level-badge {
+    width:36px; height:36px; border-radius:6px; display:flex; align-items:center;
+    justify-content:center; font-family:var(--mono); font-weight:600; font-size:15px;
+    background:var(--badge-bg); color:var(--badge-color);
+  }
+  .patient-name { font-weight:500; font-size:14px; }
+  .patient-complaint { font-size:12px; color:var(--muted); margin-top:2px; }
+  .wait-time { font-family:var(--mono); font-size:12px; color:var(--muted); white-space:nowrap; }
+  .triage-tag {
+    font-family:var(--mono); font-size:10px; font-weight:600; padding:3px 8px;
+    border-radius:4px; letter-spacing:0.5px; white-space:nowrap;
+  }
+
+  /* BED GRID */
+  .bed-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(64px,1fr)); gap:6px; }
+  .bed {
+    aspect-ratio:1; border-radius:6px; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; font-family:var(--mono);
+    font-size:10px; font-weight:500; cursor:pointer; transition:transform 0.15s;
+    border:1px solid transparent;
+  }
+  .bed:hover { transform:scale(1.05); }
+  .bed.available { background:#0d2818; border-color:#1a4731; color:var(--green); }
+  .bed.occupied  { background:#1a0a0a; border-color:#4a1515; color:var(--red); }
+  .bed.cleaning  { background:#1a150a; border-color:#4a3815; color:var(--yellow); }
+  .bed-icon { font-size:16px; margin-bottom:2px; }
+
+  /* ALERTS */
+  .alert-list { display:flex; flex-direction:column; gap:0.5rem; max-height:280px; overflow-y:auto; }
+  .alert-item {
+    display:flex; align-items:flex-start; gap:10px;
+    padding:0.75rem; border-radius:6px; border-left:3px solid;
+  }
+  .alert-item.critical { background:#1a0505; border-color:var(--red); }
+  .alert-item.high     { background:#1a0d00; border-color:var(--orange); }
+  .alert-item.medium   { background:#1a1400; border-color:var(--yellow); }
+  .alert-item.low      { background:#001a0d; border-color:var(--green); }
+  .alert-dot { width:8px; height:8px; border-radius:50%; margin-top:5px; flex-shrink:0; }
+  .alert-item.critical .alert-dot { background:var(--red); box-shadow:0 0 6px var(--red); }
+  .alert-item.high     .alert-dot { background:var(--orange); }
+  .alert-item.medium   .alert-dot { background:var(--yellow); }
+  .alert-title { font-size:13px; font-weight:500; }
+  .alert-msg   { font-size:12px; color:var(--muted); margin-top:2px; }
+  .alert-time  { font-family:var(--mono); font-size:11px; color:var(--muted); margin-left:auto; white-space:nowrap; }
+  .ack-btn {
+    font-size:11px; font-family:var(--mono); padding:3px 8px;
+    background:transparent; border:1px solid var(--border); border-radius:4px;
+    color:var(--muted); cursor:pointer; margin-top:4px;
+  }
+  .ack-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* FORM */
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  .form-group { display:flex; flex-direction:column; gap:6px; }
+  .form-group.full { grid-column:1/-1; }
+  label { font-size:11px; font-family:var(--mono); color:var(--muted); letter-spacing:0.5px; text-transform:uppercase; }
+  input, select, textarea {
+    background:var(--surface2); border:1px solid var(--border); border-radius:6px;
+    color:var(--text); font-family:var(--sans); font-size:14px; padding:8px 12px;
+    transition:border-color 0.15s; outline:none;
+  }
+  input:focus, select:focus, textarea:focus { border-color:var(--accent); }
+  select option { background:var(--surface2); }
+  textarea { resize:vertical; min-height:60px; }
+
+  /* BUTTONS */
+  .btn {
+    padding:10px 20px; border-radius:6px; font-size:13px; font-family:var(--mono);
+    font-weight:500; cursor:pointer; border:none; transition:all 0.15s; letter-spacing:0.5px;
+  }
+  .btn-primary { background:var(--accent); color:#000; }
+  .btn-primary:hover { background:#00b8d9; }
+  .btn-ghost { background:transparent; color:var(--muted); border:1px solid var(--border); }
+  .btn-ghost:hover { border-color:var(--accent); color:var(--accent); }
+  .btn-danger { background:#3d0505; color:var(--red); border:1px solid #4a1515; }
+
+  /* TRIAGE RESULT */
+  .triage-result {
+    margin-top:1.5rem; padding:1.25rem; border-radius:8px;
+    border:1px solid; display:none;
+  }
+  .triage-result.show { display:block; }
+  .result-level { font-family:var(--mono); font-size:28px; font-weight:600; }
+  .result-label { font-size:14px; margin-top:4px; }
+  .result-reason { font-size:13px; color:var(--muted); margin-top:8px; }
+  .result-wait { font-family:var(--mono); font-size:12px; margin-top:6px; }
+
+  /* SEARCH */
+  .search-bar { display:flex; gap:8px; margin-bottom:1rem; }
+  .search-bar input { flex:1; }
+  .search-results { display:flex; flex-direction:column; gap:0.5rem; }
+  .search-result-item {
+    padding:0.75rem 1rem; background:var(--surface2); border-radius:6px;
+    display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:12px;
+    cursor:pointer; border:1px solid transparent;
+  }
+  .search-result-item:hover { border-color:var(--accent); }
+
+  /* PAGE SECTIONS */
+  .page { display:none; }
+  .page.active { display:block; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+  /* WARD TABS */
+  .ward-tabs { display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap; }
+  .ward-tab {
+    padding:6px 14px; border-radius:20px; font-size:12px; font-family:var(--mono);
+    cursor:pointer; border:1px solid var(--border); color:var(--muted); transition:all 0.15s;
+  }
+  .ward-tab.active { background:var(--accent); color:#000; border-color:var(--accent); }
+  .ward-tab:hover:not(.active) { border-color:var(--accent); color:var(--accent); }
+
+  .empty-state { text-align:center; padding:2rem; color:var(--muted); font-size:13px; font-family:var(--mono); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">C+</div>
+    <div>
+      <div class="logo-text">CAREOPS</div>
+      <div class="logo-sub">ER COMMAND CENTER</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-dot"></div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+</header>
+
+<nav>
+  <div class="tab active" onclick="showPage('dashboard')">DASHBOARD</div>
+  <div class="tab" onclick="showPage('admit')">ADMIT PATIENT</div>
+  <div class="tab" onclick="showPage('manage')">PATIENT MANAGEMENT</div>
+  <div class="tab" onclick="showPage('beds')">BED MANAGEMENT</div>
+  <div class="tab" onclick="showPage('search')">PATIENT LOOKUP</div>
+  <div class="tab" onclick="showPage('alerts')">ALERTS <span id="alert-count-badge"></span></div>
+</nav>
+
+<main>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="stats-row">
+    <div class="stat-card" style="--accent-color:var(--red)">
+      <div class="stat-label">Critical Waiting</div>
+      <div class="stat-value" id="stat-critical" style="color:var(--red)">0</div>
+      <div class="stat-sub">Level 1-2 patients</div>
+    </div>
+    <div class="stat-card" style="--accent-color:var(--yellow)">
+      <div class="stat-label">Total in Queue</div>
+      <div class="stat-value" id="stat-queue" style="color:var(--yellow)">0</div>
+      <div class="stat-sub">Awaiting treatment</div>
+    </div>
+    <div class="stat-card" style="--accent-color:var(--green)">
+      <div class="stat-label">Beds Available</div>
+      <div class="stat-value" id="stat-beds" style="color:var(--green)">0</div>
+      <div class="stat-sub">Across all wards</div>
+    </div>
+    <div class="stat-card" style="--accent-color:var(--orange)">
+      <div class="stat-label">Active Alerts</div>
+      <div class="stat-value" id="stat-alerts" style="color:var(--orange)">0</div>
+      <div class="stat-sub">Unacknowledged</div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Triage Queue</span>
+        <span style="font-size:11px;font-family:var(--mono);color:var(--muted)" id="queue-time">Live</span>
+      </div>
+      <div class="panel-body">
+        <div class="queue-list" id="queue-list">
+          <div class="empty-state">No patients in queue</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Bed Availability</span></div>
+      <div class="panel-body" id="bed-summary-panel">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Active Alerts</span></div>
+      <div class="panel-body">
+        <div class="alert-list" id="dash-alert-list">
+          <div class="empty-state">No active alerts</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIT PATIENT -->
+<div class="page" id="page-admit">
+  <div style="max-width:800px">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Patient Intake & Triage Assessment</span></div>
+      <div class="panel-body">
+        <form id="admit-form" onsubmit="submitPatient(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>First Name</label>
+              <input type="text" id="firstName" required placeholder="John"/>
+            </div>
+            <div class="form-group">
+              <label>Last Name</label>
+              <input type="text" id="lastName" required placeholder="Doe"/>
+            </div>
+            <div class="form-group">
+              <label>Date of Birth</label>
+              <input type="date" id="dob"/>
+            </div>
+            <div class="form-group">
+              <label>Gender</label>
+              <select id="gender">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+                <option value="prefer_not">Prefer not to say</option>
+              </select>
+            </div>
+            <div class="form-group full">
+              <label>Chief Complaint</label>
+              <textarea id="chiefComplaint" required placeholder="e.g. chest pain, difficulty breathing, severe headache..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Heart Rate (bpm)</label>
+              <input type="number" id="heartRate" required placeholder="72" min="0" max="300"/>
+            </div>
+            <div class="form-group">
+              <label>BP Systolic (mmHg)</label>
+              <input type="number" id="bloodPressureSystolic" required placeholder="120" min="0" max="300"/>
+            </div>
+            <div class="form-group">
+              <label>BP Diastolic (mmHg)</label>
+              <input type="number" id="bloodPressureDiastolic" required placeholder="80" min="0" max="200"/>
+            </div>
+            <div class="form-group">
+              <label>O₂ Saturation (%)</label>
+              <input type="number" id="oxygenSaturation" required placeholder="98" min="0" max="100"/>
+            </div>
+            <div class="form-group">
+              <label>Temperature (°F)</label>
+              <input type="number" id="temperature" required placeholder="98.6" step="0.1"/>
+            </div>
+            <div class="form-group">
+              <label>Respiratory Rate</label>
+              <input type="number" id="respiratoryRate" required placeholder="16" min="0" max="60"/>
+            </div>
+            <div class="form-group">
+              <label>Pain Level (0-10)</label>
+              <input type="number" id="painLevel" required placeholder="5" min="0" max="10"/>
+            </div>
+            <div class="form-group">
+              <label>Consciousness Level</label>
+              <select id="consciousnessLevel">
+                <option value="alert">Alert & Oriented</option>
+                <option value="confused">Confused</option>
+                <option value="unresponsive">Unresponsive</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:1.5rem">
+            <button type="submit" class="btn btn-primary">RUN TRIAGE ASSESSMENT</button>
+            <button type="button" class="btn btn-ghost" onclick="clearForm()">CLEAR</button>
+          </div>
+        </form>
+
+        <div class="triage-result" id="triage-result">
+          <div class="result-level" id="result-level"></div>
+          <div class="result-label" id="result-label"></div>
+          <div class="result-reason" id="result-reason"></div>
+          <div class="result-wait" id="result-wait"></div>
+          <div style="margin-top:1rem;display:flex;gap:8px">
+            <button class="btn btn-primary" onclick="assignBed()">ASSIGN BED</button>
+            <button class="btn btn-ghost" onclick="clearResult()">NEW PATIENT</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BED MANAGEMENT -->
+<div class="page" id="page-beds">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Bed Status</span>
+      <div style="display:flex;gap:12px;font-size:12px;font-family:var(--mono)">
+        <span style="color:var(--green)">■ Available</span>
+        <span style="color:var(--red)">■ Occupied</span>
+        <span style="color:var(--yellow)">■ Cleaning</span>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="ward-tabs" id="ward-tabs">
+        <div class="ward-tab active" onclick="filterWard('all', this)">All Wards</div>
+        <div class="ward-tab" onclick="filterWard('ICU', this)">ICU</div>
+        <div class="ward-tab" onclick="filterWard('Emergency', this)">Emergency</div>
+        <div class="ward-tab" onclick="filterWard('General', this)">General</div>
+        <div class="ward-tab" onclick="filterWard('Pediatric', this)">Pediatric</div>
+      </div>
+      <div class="bed-grid" id="bed-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PATIENT SEARCH -->
+<div class="page" id="page-search">
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Patient Lookup</span></div>
+    <div class="panel-body">
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Search by name or patient ID..." onkeyup="handleSearch(event)"/>
+        <button class="btn btn-primary" onclick="searchPatients()">SEARCH</button>
+      </div>
+      <div class="search-results" id="search-results">
+        <div class="empty-state">Enter a name or ID to search</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Patient Detail Modal -->
+  <div id="patient-detail" style="display:none;margin-top:1rem">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title" id="detail-name">Patient Details</span>
+        <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="closeDetail()">CLOSE</button>
+      </div>
+      <div class="panel-body" id="detail-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ALERTS PAGE -->
+<div class="page" id="page-alerts">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">System Alerts</span>
+      <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="loadAlerts()">REFRESH</button>
+    </div>
+    <div class="panel-body">
+      <div class="alert-list" id="full-alert-list" style="max-height:600px">
+        <div class="empty-state">No active alerts</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PATIENT MANAGEMENT -->
+<div class="page" id="page-manage">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Patient Management</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="loadManage()">REFRESH</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="ward-tabs" id="manage-filter-tabs">
+        <div class="ward-tab active" onclick="filterManage('all', this)">All Patients</div>
+        <div class="ward-tab" onclick="filterManage('waiting', this)">Waiting</div>
+        <div class="ward-tab" onclick="filterManage('in_treatment', this)">In Treatment</div>
+        <div class="ward-tab" onclick="filterManage('ready_for_discharge', this)">Ready for Discharge</div>
+        <div class="ward-tab" onclick="filterManage('discharged', this)">Discharged</div>
+      </div>
+      <div id="manage-list"><div class="empty-state">Loading...</div></div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+const TRIAGE  = window.TRIAGE_URL  || 'http://localhost:3001';
+const BEDS    = window.BEDS_URL    || 'http://localhost:3002';
+const ALERTS  = window.ALERTS_URL  || 'http://localhost:3003';
+
+let lastTriageResult = null;
+let lastPatientId = null;
+let allBeds = [];
+
+// Clock
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US',{hour12:false});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Page navigation
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'beds') loadBeds();
+  if (name === 'alerts') loadAlerts();
+  if (name === 'manage') loadManage();
+}
+
+// Triage level styling
+const levelStyles = {
+  1: { color:'var(--red)',    bg:'rgba(255,77,77,0.1)',    border:'var(--red)',    badgeBg:'rgba(255,77,77,0.2)', tag:'CRITICAL'   },
+  2: { color:'var(--orange)', bg:'rgba(255,140,0,0.1)',   border:'var(--orange)', badgeBg:'rgba(255,140,0,0.2)', tag:'EMERGENT'   },
+  3: { color:'var(--yellow)', bg:'rgba(255,215,0,0.1)',   border:'var(--yellow)', badgeBg:'rgba(255,215,0,0.2)', tag:'URGENT'     },
+  4: { color:'var(--green)',  bg:'rgba(0,230,118,0.1)',   border:'var(--green)',  badgeBg:'rgba(0,230,118,0.2)', tag:'LESS URGENT'},
+  5: { color:'var(--blue)',   bg:'rgba(79,195,247,0.1)',  border:'var(--blue)',   badgeBg:'rgba(79,195,247,0.2)',tag:'NON-URGENT' },
+};
+
+function timeAgo(ts) {
+  const diff = Math.floor((Date.now() - new Date(ts)) / 60000);
+  if (diff < 1) return 'Just now';
+  if (diff < 60) return diff + 'm ago';
+  return Math.floor(diff/60) + 'h ago';
+}
+
+// DASHBOARD
+async function loadDashboard() {
+  try {
+    const [patients, bedSummary, alertStats] = await Promise.all([
+      fetch(TRIAGE + '/patients?status=waiting').then(r=>r.json()),
+      fetch(BEDS + '/beds/summary').then(r=>r.json()),
+      fetch(ALERTS + '/alerts/stats').then(r=>r.json()),
+    ]);
+
+    const critical = patients.filter(p => p.triage_level <= 2).length;
+    document.getElementById('stat-critical').textContent = critical;
+    document.getElementById('stat-queue').textContent = patients.length;
+
+    const totalAvail = bedSummary.reduce((s,w) => s + parseInt(w.available), 0);
+    document.getElementById('stat-beds').textContent = totalAvail;
+    document.getElementById('stat-alerts').textContent = alertStats.active || 0;
+    document.getElementById('alert-count-badge').textContent = alertStats.active > 0 ? ` (${alertStats.active})` : '';
+
+    // Queue
+    const qEl = document.getElementById('queue-list');
+    if (patients.length === 0) {
+      qEl.innerHTML = '<div class="empty-state">No patients in queue</div>';
+    } else {
+      qEl.innerHTML = patients.slice(0,15).map(p => {
+        const s = levelStyles[p.triage_level] || levelStyles[5];
+        return `<div class="queue-item" style="--item-color:${s.border}" onclick="showPatientDetail(${p.id})">
+          <div class="level-badge" style="background:${s.badgeBg};color:${s.color}">${p.triage_level}</div>
+          <div>
+            <div class="patient-name">${p.first_name} ${p.last_name}</div>
+            <div class="patient-complaint">${p.chief_complaint.substring(0,50)}${p.chief_complaint.length>50?'...':''}</div>
+          </div>
+          <div class="triage-tag" style="background:${s.badgeBg};color:${s.color}">${s.tag}</div>
+          <div class="wait-time">${timeAgo(p.created_at)}</div>
+        </div>`;
+      }).join('');
+    }
+
+    // Bed summary
+    const bEl = document.getElementById('bed-summary-panel');
+    bEl.innerHTML = bedSummary.map(w => {
+      const pct = Math.round((w.available / w.total) * 100);
+      const color = pct > 50 ? 'var(--green)' : pct > 20 ? 'var(--yellow)' : 'var(--red)';
+      return `<div style="margin-bottom:0.75rem">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+          <span style="font-family:var(--mono)">${w.ward}</span>
+          <span style="color:${color};font-family:var(--mono)">${w.available}/${w.total}</span>
+        </div>
+        <div style="height:4px;background:var(--surface3);border-radius:2px">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:2px;transition:width 0.5s"></div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Alerts
+    const alerts = await fetch(ALERTS + '/alerts?acknowledged=false').then(r=>r.json());
+    const aEl = document.getElementById('dash-alert-list');
+    if (alerts.length === 0) {
+      aEl.innerHTML = '<div class="empty-state">No active alerts</div>';
+    } else {
+      aEl.innerHTML = alerts.slice(0,6).map(a => `
+        <div class="alert-item ${a.severity}">
+          <div class="alert-dot"></div>
+          <div style="flex:1">
+            <div class="alert-title">${a.title}</div>
+            <div class="alert-msg">${a.message.substring(0,80)}...</div>
+          </div>
+          <div class="alert-time">${timeAgo(a.created_at)}</div>
+        </div>`).join('');
+    }
+  } catch(e) {
+    console.error('Dashboard load error:', e);
+  }
+}
+
+// ADMIT PATIENT
+async function submitPatient(e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.textContent = 'ASSESSING...';
+  btn.disabled = true;
+
+  const body = {
+    firstName: document.getElementById('firstName').value,
+    lastName: document.getElementById('lastName').value,
+    dob: document.getElementById('dob').value,
+    gender: document.getElementById('gender').value,
+    chiefComplaint: document.getElementById('chiefComplaint').value,
+    heartRate: parseInt(document.getElementById('heartRate').value),
+    bloodPressureSystolic: parseInt(document.getElementById('bloodPressureSystolic').value),
+    bloodPressureDiastolic: parseInt(document.getElementById('bloodPressureDiastolic').value),
+    oxygenSaturation: parseInt(document.getElementById('oxygenSaturation').value),
+    temperature: parseFloat(document.getElementById('temperature').value),
+    respiratoryRate: parseInt(document.getElementById('respiratoryRate').value),
+    painLevel: parseInt(document.getElementById('painLevel').value),
+    consciousnessLevel: document.getElementById('consciousnessLevel').value,
+  };
+
+  try {
+    const res = await fetch(TRIAGE + '/patients', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+    });
+    const data = await res.json();
+    lastPatientId = data.patient.id;
+    lastTriageResult = data.triage;
+    showTriageResult(data.triage, body.firstName, body.lastName);
+
+    // Auto-generate alerts for critical patients
+    if (data.triage.level <= 2) {
+      await fetch(ALERTS + '/alerts/check', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          level1WaitMinutes: data.triage.level === 1 ? 5 : 0,
+          patientId: data.patient.id,
+          patientName: `${body.firstName} ${body.lastName}`,
+          criticalWaiting: 1, bedAvailabilityPct: 30
+        })
+      });
+    }
+  } catch(err) {
+    alert('Error submitting patient: ' + err.message);
+  } finally {
+    btn.textContent = 'RUN TRIAGE ASSESSMENT';
+    btn.disabled = false;
+  }
+}
+
+function showTriageResult(triage, firstName, lastName) {
+  const s = levelStyles[triage.level] || levelStyles[5];
+  const el = document.getElementById('triage-result');
+  el.style.background = s.bg;
+  el.style.borderColor = s.border;
+  el.classList.add('show');
+  document.getElementById('result-level').style.color = s.color;
+  document.getElementById('result-level').textContent = `ESI Level ${triage.level}`;
+  document.getElementById('result-label').textContent = `${firstName} ${lastName} — ${triage.label}`;
+  document.getElementById('result-reason').textContent = triage.reason;
+  document.getElementById('result-wait').textContent = `Estimated wait: ${triage.waitTime}`;
+}
+
+async function assignBed() {
+  if (!lastPatientId || !lastTriageResult) return;
+  const patientRes = await fetch(TRIAGE + '/patients/' + lastPatientId).then(r=>r.json());
+  const res = await fetch(BEDS + '/beds/assign', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      patientId: lastPatientId,
+      patientName: `${patientRes.first_name} ${patientRes.last_name}`,
+      triageLevel: lastTriageResult.level
+    })
+  });
+  const bed = await res.json();
+  if (bed.error) { alert(bed.error); return; }
+  await fetch(TRIAGE + '/patients/' + lastPatientId + '/status', {
+    method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({status: 'in_treatment'})
+  });
+  alert(`Bed ${bed.bed_number} assigned in ${bed.ward} ward.`);
+  clearResult();
+}
+
+function clearForm() {
+  document.getElementById('admit-form').reset();
+  clearResult();
+}
+function clearResult() {
+  document.getElementById('triage-result').classList.remove('show');
+  lastTriageResult = null; lastPatientId = null;
+}
+
+// BED MANAGEMENT
+async function loadBeds(ward) {
+  try {
+    const url = ward && ward !== 'all' ? BEDS + '/beds?ward=' + ward : BEDS + '/beds';
+    allBeds = await fetch(url).then(r=>r.json());
+    renderBeds(allBeds);
+  } catch(e) { console.error(e); }
+}
+
+function renderBeds(beds) {
+  const grid = document.getElementById('bed-grid');
+  if (beds.length === 0) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No beds found</div>'; return; }
+  grid.innerHTML = beds.map(b => {
+    const icon = b.status === 'available' ? '🛏' : b.status === 'occupied' ? '🧑‍⚕️' : '🧹';
+    return `<div class="bed ${b.status}" onclick="handleBedClick(${b.id}, '${b.status}', '${b.bed_number}')" title="${b.patient_name || b.bed_number} — ${b.ward} — ${b.status}">
+      <div class="bed-icon">${icon}</div>
+      <div>${b.bed_number}</div>
+    </div>`;
+  }).join('');
+}
+
+function filterWard(ward, el) {
+  document.querySelectorAll('.ward-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  loadBeds(ward);
+}
+
+async function handleBedClick(id, status, bedNumber) {
+  if (status === 'occupied') {
+    if (confirm(`Release bed ${bedNumber}?`)) {
+      await fetch(BEDS + '/beds/' + id + '/release', {method:'PATCH'});
+      loadBeds();
+    }
+  } else if (status === 'cleaning') {
+    if (confirm(`Mark bed ${bedNumber} as ready?`)) {
+      await fetch(BEDS + '/beds/' + id + '/ready', {method:'PATCH'});
+      loadBeds();
+    }
+  }
+}
+
+// PATIENT SEARCH
+function handleSearch(e) {
+  if (e.key === 'Enter') searchPatients();
+}
+
+async function searchPatients() {
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) return;
+  try {
+    const patients = await fetch(TRIAGE + '/patients?search=' + encodeURIComponent(q)).then(r=>r.json());
+    const el = document.getElementById('search-results');
+    if (patients.length === 0) {
+      el.innerHTML = '<div class="empty-state">No patients found</div>';
+      return;
+    }
+    el.innerHTML = patients.map(p => {
+      const s = levelStyles[p.triage_level] || levelStyles[5];
+      return `<div class="search-result-item" onclick="showPatientDetail(${p.id})">
+        <div>
+          <div style="font-weight:500">ID #${p.id} — ${p.first_name} ${p.last_name}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${p.chief_complaint.substring(0,60)}</div>
+        </div>
+        <div class="triage-tag" style="background:${s.badgeBg};color:${s.color}">${s.tag}</div>
+        <div style="font-size:12px;font-family:var(--mono);color:var(--muted)">${p.status}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function showPatientDetail(id) {
+  const p = await fetch(TRIAGE + '/patients/' + id).then(r=>r.json());
+  const s = levelStyles[p.triage_level] || levelStyles[5];
+  document.getElementById('detail-name').textContent = `#${p.id} — ${p.first_name} ${p.last_name}`;
+  document.getElementById('detail-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1rem">
+      <div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">TRIAGE LEVEL</div>
+        <div style="font-size:24px;font-family:var(--mono);font-weight:600;color:${s.color}">ESI ${p.triage_level}</div>
+        <div style="font-size:12px;color:${s.color}">${p.triage_label}</div></div>
+      <div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">STATUS</div>
+        <div style="font-size:16px;font-weight:500;margin-top:4px">${p.status}</div></div>
+      <div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">ADMITTED</div>
+        <div style="font-size:13px;font-family:var(--mono);margin-top:4px">${new Date(p.created_at).toLocaleString()}</div></div>
+    </div>
+    <div style="background:var(--surface2);border-radius:6px;padding:1rem;margin-bottom:1rem">
+      <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:6px">CHIEF COMPLAINT</div>
+      <div>${p.chief_complaint}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">${p.triage_reason}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem">
+      ${[['Heart Rate', p.heart_rate + ' bpm'],['BP', p.blood_pressure_systolic+'/'+p.blood_pressure_diastolic],
+         ['O₂ Sat', p.oxygen_saturation + '%'],['Temp', p.temperature + '°F'],
+         ['Resp Rate', p.respiratory_rate + '/min'],['Pain', p.pain_level + '/10'],
+         ['Consciousness', p.consciousness_level]].map(([l,v]) =>
+        `<div style="background:var(--surface2);border-radius:6px;padding:0.75rem">
+          <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${l}</div>
+          <div style="font-size:16px;font-weight:500;margin-top:4px">${v}</div>
+        </div>`).join('')}
+    </div>`;
+  document.getElementById('patient-detail').style.display = 'block';
+  document.getElementById('patient-detail').scrollIntoView({behavior:'smooth'});
+}
+
+function closeDetail() {
+  document.getElementById('patient-detail').style.display = 'none';
+}
+
+// ALERTS
+async function loadAlerts() {
+  try {
+    const alerts = await fetch(ALERTS + '/alerts?acknowledged=false').then(r=>r.json());
+    const el = document.getElementById('full-alert-list');
+    if (alerts.length === 0) { el.innerHTML = '<div class="empty-state">No active alerts — system nominal</div>'; return; }
+    el.innerHTML = alerts.map(a => `
+      <div class="alert-item ${a.severity}" id="alert-${a.id}">
+        <div class="alert-dot"></div>
+        <div style="flex:1">
+          <div class="alert-title">${a.title}</div>
+          <div class="alert-msg">${a.message}</div>
+          ${a.patient_name ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--mono)">Patient: ${a.patient_name}</div>` : ''}
+          <button class="ack-btn" onclick="acknowledgeAlert(${a.id})">ACKNOWLEDGE</button>
+        </div>
+        <div class="alert-time">${timeAgo(a.created_at)}</div>
+      </div>`).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function acknowledgeAlert(id) {
+  await fetch(ALERTS + '/alerts/' + id + '/acknowledge', {
+    method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({acknowledgedBy: 'ER Staff'})
+  });
+  document.getElementById('alert-' + id).remove();
+}
+
+// Auto refresh dashboard every 30s
+loadDashboard();
+setInterval(() => {
+  const dash = document.getElementById('page-dashboard');
+  if (dash.classList.contains('active')) loadDashboard();
+}, 30000);
+</script>
+</body>
+</html>
+<style>
+.manage-card {
+  background:var(--surface2); border-radius:8px; border:1px solid var(--border);
+  margin-bottom:0.75rem; overflow:hidden;
+}
+.manage-card-header {
+  display:grid; grid-template-columns:44px 1fr auto auto auto;
+  align-items:center; gap:12px; padding:0.875rem 1rem;
+  cursor:pointer;
+}
+.manage-card-header:hover { background:var(--surface3); }
+.manage-card-body {
+  border-top:1px solid var(--border); padding:1rem;
+  display:none;
+}
+.manage-card-body.open { display:block; }
+.condition-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:1rem;
+}
+.condition-btn {
+  padding:10px; border-radius:6px; border:1px solid var(--border);
+  font-family:var(--mono); font-size:11px; font-weight:600; cursor:pointer;
+  text-align:center; transition:all 0.15s; background:transparent; color:var(--muted);
+  letter-spacing:0.5px;
+}
+.condition-btn:hover { border-color:var(--accent); color:var(--accent); }
+.condition-btn.active-improving  { background:rgba(0,230,118,0.15); border-color:var(--green); color:var(--green); }
+.condition-btn.active-stable     { background:rgba(79,195,247,0.15); border-color:var(--blue); color:var(--blue); }
+.condition-btn.active-deteriorating { background:rgba(255,140,0,0.15); border-color:var(--orange); color:var(--orange); }
+.condition-btn.active-critical   { background:rgba(255,77,77,0.15); border-color:var(--red); color:var(--red); }
+.action-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:0.75rem; }
+.status-pill {
+  font-family:var(--mono); font-size:10px; font-weight:600; padding:3px 10px;
+  border-radius:20px; letter-spacing:0.5px;
+}
+.status-waiting          { background:rgba(255,215,0,0.15); color:var(--yellow); }
+.status-in_treatment     { background:rgba(0,212,255,0.15); color:var(--accent); }
+.status-ready_for_discharge { background:rgba(0,230,118,0.15); color:var(--green); }
+.status-discharged       { background:rgba(125,133,144,0.15); color:var(--muted); }
+.notes-input {
+  width:100%; margin-top:0.75rem;
+  background:var(--surface); border:1px solid var(--border); border-radius:6px;
+  color:var(--text); font-family:var(--sans); font-size:13px; padding:8px 12px;
+  resize:vertical; min-height:52px; outline:none;
+}
+.notes-input:focus { border-color:var(--accent); }
+</style>
+<script>
+let manageAllPatients = [];
+let manageFilter = 'all';
+let openCardId = null;
+
+async function loadManage() {
+  try {
+    const patients = await fetch(TRIAGE + '/patients').then(r => r.json());
+    manageAllPatients = patients;
+    renderManage();
+  } catch(e) { console.error(e); }
+}
+
+function filterManage(status, el) {
+  document.querySelectorAll('#manage-filter-tabs .ward-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  manageFilter = status;
+  renderManage();
+}
+
+function renderManage() {
+  const filtered = manageFilter === 'all'
+    ? manageAllPatients
+    : manageAllPatients.filter(p => p.status === manageFilter);
+
+  const el = document.getElementById('manage-list');
+  if (filtered.length === 0) {
+    el.innerHTML = '<div class="empty-state">No patients found</div>';
+    return;
+  }
+
+  el.innerHTML = filtered.map(p => {
+    const s = levelStyles[p.triage_level] || levelStyles[5];
+    const statusClass = 'status-' + p.status;
+    const cond = p.condition || '';
+    return `<div class="manage-card" id="mc-${p.id}">
+      <div class="manage-card-header" onclick="toggleManageCard(${p.id})">
+        <div class="level-badge" style="background:${s.badgeBg};color:${s.color}">${p.triage_level}</div>
+        <div>
+          <div style="font-weight:500;font-size:14px">#${p.id} — ${p.first_name} ${p.last_name}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${p.chief_complaint.substring(0,60)}</div>
+        </div>
+        <span class="status-pill ${statusClass}">${p.status.replace(/_/g,' ').toUpperCase()}</span>
+        ${cond ? `<span style="font-size:11px;font-family:var(--mono);color:var(--muted)">${cond.toUpperCase()}</span>` : '<span></span>'}
+        <span style="color:var(--muted);font-size:12px">${timeAgo(p.created_at)}</span>
+      </div>
+      <div class="manage-card-body" id="mcb-${p.id}">
+        <div style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:8px">UPDATE CONDITION</div>
+        <div class="condition-grid">
+          <button class="condition-btn ${cond==='improving'?'active-improving':''}" onclick="setCondition(${p.id},'improving')">IMPROVING</button>
+          <button class="condition-btn ${cond==='stable'?'active-stable':''}" onclick="setCondition(${p.id},'stable')">STABLE</button>
+          <button class="condition-btn ${cond==='deteriorating'?'active-deteriorating':''}" onclick="setCondition(${p.id},'deteriorating')">DETERIORATING</button>
+          <button class="condition-btn ${cond==='critical'?'active-critical':''}" onclick="setCondition(${p.id},'critical')">CRITICAL</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:8px">UPDATE STATUS</div>
+        <div class="action-row">
+          <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="updateStatus(${p.id},'waiting')">WAITING</button>
+          <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="updateStatus(${p.id},'in_treatment')">IN TREATMENT</button>
+          <button class="btn btn-primary" style="font-size:11px;padding:6px 12px" onclick="prepareDischarge(${p.id},'${p.first_name} ${p.last_name}')">PREPARE DISCHARGE</button>
+          <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;color:var(--red);border-color:var(--red)" onclick="escalatePatient(${p.id},'${p.first_name} ${p.last_name}')">ESCALATE</button>
+          <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;color:var(--muted)" onclick="updateStatus(${p.id},'discharged')">DISCHARGE</button>
+        </div>
+        <textarea class="notes-input" id="notes-${p.id}" placeholder="Add clinical notes...">${p.notes||''}</textarea>
+        <div style="margin-top:8px">
+          <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="saveNotes(${p.id})">SAVE NOTES</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleManageCard(id) {
+  const body = document.getElementById('mcb-' + id);
+  if (openCardId && openCardId !== id) {
+    const prev = document.getElementById('mcb-' + openCardId);
+    if (prev) prev.classList.remove('open');
+  }
+  body.classList.toggle('open');
+  openCardId = body.classList.contains('open') ? id : null;
+}
+
+async function setCondition(id, condition) {
+  await fetch(TRIAGE + '/patients/' + id + '/condition', {
+    method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ condition })
+  });
+
+  // Auto-suggest action based on condition
+  if (condition === 'improving') {
+    showToast(`Patient improving — consider preparing discharge`, 'green');
+  } else if (condition === 'deteriorating' || condition === 'critical') {
+    showToast(`Condition worsening — consider escalation or re-triage`, 'red');
+    // Fire an alert
+    const p = manageAllPatients.find(x => x.id === id);
+    if (p) {
+      await fetch(ALERTS + '/alerts', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          type: 'condition_change', severity: condition === 'critical' ? 'critical' : 'high',
+          title: `Patient Condition Worsening: ${p.first_name} ${p.last_name}`,
+          message: `Patient #${id} condition updated to ${condition.toUpperCase()}. Immediate review recommended.`,
+          patientId: id, patientName: `${p.first_name} ${p.last_name}`
+        })
+      });
+    }
+  }
+  await loadManage();
+}
+
+async function updateStatus(id, status) {
+  await fetch(TRIAGE + '/patients/' + id + '/status', {
+    method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ status })
+  });
+  showToast('Status updated to ' + status.replace(/_/g,' '), 'blue');
+  await loadManage();
+}
+
+async function prepareDischarge(id, name) {
+  await fetch(TRIAGE + '/patients/' + id + '/status', {
+    method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ status: 'ready_for_discharge' })
+  });
+  await fetch(TRIAGE + '/patients/' + id + '/condition', {
+    method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ condition: 'improving' })
+  });
+  showToast(`${name} marked ready for discharge`, 'green');
+  await loadManage();
+}
+
+async function escalatePatient(id, name) {
+  await fetch(TRIAGE + '/patients/' + id + '/status', {
+    method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ status: 'in_treatment' })
+  });
+  await fetch(ALERTS + '/alerts', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      type: 'escalation', severity: 'critical',
+      title: `ESCALATION: ${name}`,
+      message: `Patient #${id} has been escalated. Immediate physician attention required.`,
+      patientId: id, patientName: name
+    })
+  });
+  showToast(`${name} escalated — alert sent`, 'red');
+  await loadManage();
+}
+
+async function saveNotes(id) {
+  const notes = document.getElementById('notes-' + id).value;
+  await fetch(TRIAGE + '/patients/' + id + '/notes', {
+    method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ notes })
+  });
+  showToast('Notes saved', 'blue');
+}
+
+// Toast notification
+function showToast(msg, color) {
+  const colors = { green:'var(--green)', red:'var(--red)', blue:'var(--accent)' };
+  const toast = document.createElement('div');
+  toast.style.cssText = `position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid ${colors[color]||'var(--border)'};
+    color:${colors[color]||'var(--text)'};padding:12px 20px;border-radius:8px;font-family:var(--mono);font-size:12px;
+    z-index:9999;transition:opacity 0.3s;box-shadow:0 4px 20px rgba(0,0,0,0.4)`;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.style.opacity='0'; setTimeout(() => toast.remove(), 300); }, 3000);
+}
+</script>

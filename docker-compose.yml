@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: kindcare
+      POSTGRES_USER: kindcare
+      POSTGRES_PASSWORD: kindcare_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kindcare"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  triage-service:
+    build: ./services/triage-service
+    ports:
+      - "3001:3001"
+    environment:
+      DB_HOST: db
+      DB_NAME: kindcare
+      DB_USER: kindcare
+      DB_PASSWORD: kindcare_dev
+    depends_on:
+      db:
+        condition: service_healthy
+
+  bed-service:
+    build: ./services/bed-service
+    ports:
+      - "3002:3002"
+    environment:
+      DB_HOST: db
+      DB_NAME: kindcare
+      DB_USER: kindcare
+      DB_PASSWORD: kindcare_dev
+    depends_on:
+      db:
+        condition: service_healthy
+
+  alerts-service:
+    build: ./services/alerts-service
+    ports:
+      - "3003:3003"
+    environment:
+      DB_HOST: db
+      DB_NAME: kindcare
+      DB_USER: kindcare
+      DB_PASSWORD: kindcare_dev
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - triage-service
+      - bed-service
+      - alerts-service
+
+volumes:
+  pgdata:
