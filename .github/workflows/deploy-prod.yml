@@ -1,0 +1,62 @@
+name: Deploy to Production
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Build and push images
+        env:
+          AWS_REGION: us-east-1
+          IMAGE_TAG: ${{ github.ref_name }}
+        run: bash scripts/01-build-images.sh
+
+      - name: Update manifests
+        env:
+          AWS_REGION: us-east-1
+          IMAGE_TAG: ${{ github.ref_name }}
+        run: bash scripts/02-update-manifests.sh
+
+      - name: Apply Terraform
+        env:
+          AWS_REGION: us-east-1
+          ENVIRONMENT: prod
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: bash scripts/03-terraform-apply.sh
+
+      - name: Deploy to EKS
+        env:
+          AWS_REGION: us-east-1
+          ENVIRONMENT: prod
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: ${{ secrets.DB_HOST_PROD }}
+        run: bash scripts/04-deploy-to-eks.sh
+
+      - name: Smoke test
+        run: bash scripts/05-smoke-test.sh
+
+      - name: Notify
+        env:
+          ENVIRONMENT: prod
+          IMAGE_TAG: ${{ github.ref_name }}
+        run: bash scripts/06-notify.sh

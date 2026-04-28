@@ -1,0 +1,45 @@
+name: CI - Build and Test
+
+on:
+  push:
+    branches: [dev, qa]
+  pull_request:
+    branches: [uat, main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        run: echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Build and push images
+        env:
+          AWS_REGION: us-east-1
+          IMAGE_TAG: ${{ github.sha }}
+        run: bash scripts/01-build-images.sh
+
+      - name: Update manifests
+        env:
+          AWS_REGION: us-east-1
+          IMAGE_TAG: ${{ github.sha }}
+        run: bash scripts/02-update-manifests.sh
+
+      - name: Commit updated manifests
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add k8s/
+          git diff --staged --quiet || git commit -m "ci: update image tags to ${{ github.sha }}"
+          git push
