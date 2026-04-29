@@ -7,6 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 const pool = new Pool({
+  ssl: { rejectUnauthorized: false },
   host: process.env.DB_HOST,
   port: process.env.DB_PORT || 5432,
   database: process.env.DB_NAME || 'kindcare',
