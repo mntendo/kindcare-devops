@@ -1,0 +1,27 @@
+grafana:
+  adminPassword: KindCare2024x
+  service:
+    type: ClusterIP
+
+prometheus:
+  prometheusSpec:
+    retention: 15d
+
+alertmanager:
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ['alertname']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: 'email'
+    receivers:
+      - name: 'email'
+        email_configs:
+          - to: 'your-email@gmail.com'
+            from: 'alerts@kindcare.com'
+            smarthost: 'smtp.gmail.com:587'
+            auth_username: 'your-email@gmail.com'
+            auth_password: 'your-app-password'
