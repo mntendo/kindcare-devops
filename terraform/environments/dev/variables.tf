@@ -21,3 +21,9 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "load_balancer_hostname" {
+  description = "Load balancer hostname - set after ingress is created"
+  type        = string
+  default     = "placeholder"
+}

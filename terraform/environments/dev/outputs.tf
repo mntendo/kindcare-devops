@@ -22,3 +22,16 @@ output "rds_db_name" {
   description = "Database name"
   value       = module.rds.db_name
 }
+
+output "name_servers" {
+  description = "Update these in Name.com"
+  value       = module.dns.name_servers
+}
+
+output "kindcare_url" {
+  value = "https://${module.dns.kindcare_domain}"
+}
+
+output "grafana_url" {
+  value = "https://${module.dns.grafana_domain}"
+}

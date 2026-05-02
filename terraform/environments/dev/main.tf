@@ -66,3 +66,11 @@ module "rds" {
   db_instance_class     = "db.t3.micro"
   eks_security_group_id = module.eks.cluster_security_group_id
 }
+
+# DNS Module
+module "dns" {
+  source = "../../modules/dns"
+
+  environment            = var.environment
+  load_balancer_hostname = var.load_balancer_hostname
+}

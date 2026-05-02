@@ -2,6 +2,25 @@ grafana:
   adminPassword: KindCare2024x
   service:
     type: ClusterIP
+  
+  grafana.ini:
+    server:
+      domain: grafana.mariamdevops.com
+      root_url: https://grafana.mariamdevops.com
+    
+    auth:
+      disable_login_form: true
+      oauth_auto_login: true
+    
+    auth.github:
+      enabled: true
+      allow_sign_up: true
+      client_id: Ov23liKtO63ry1qPDqf1
+      client_secret: ${GRAFANA_GITHUB_SECRET}
+      scopes: user:email,read:org
+      auth_url: https://github.com/login/oauth/authorize
+      token_url: https://github.com/login/oauth/access_token
+      api_url: https://api.github.com/user
 
 prometheus:
   prometheusSpec:
@@ -11,6 +30,11 @@ alertmanager:
   config:
     global:
       resolve_timeout: 5m
+      smtp_smarthost: 'smtp.ethereal.email:587'
+      smtp_from: 'buford.wolff@ethereal.email'
+      smtp_auth_username: 'buford.wolff@ethereal.email'
+      smtp_auth_password: 'wB3V8wFcxHUBNtG6KV'
+      smtp_require_tls: true
     route:
       group_by: ['alertname']
       group_wait: 10s
@@ -20,8 +44,5 @@ alertmanager:
     receivers:
       - name: 'email'
         email_configs:
-          - to: 'your-email@gmail.com'
-            from: 'alerts@kindcare.com'
-            smarthost: 'smtp.gmail.com:587'
-            auth_username: 'your-email@gmail.com'
-            auth_password: 'your-app-password'
+          - to: 'mntendo@dons.usfca.edu'
+            send_resolved: true
