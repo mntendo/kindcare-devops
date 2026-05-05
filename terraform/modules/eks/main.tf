@@ -26,7 +26,7 @@ resource "aws_security_group" "eks_cluster" {
 resource "aws_eks_cluster" "main" {
   name     = "${var.project_name}-${var.environment}"
   role_arn = data.aws_iam_role.lab_role.arn
-  version  = var.kubernetes_version
+  version  = "1.32"
 
   vpc_config {
     subnet_ids              = concat(var.private_subnet_ids, var.public_subnet_ids)
