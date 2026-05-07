@@ -45,4 +45,4 @@ jobs:
           git config user.email "actions@github.com"
           git add k8s/
           git diff --staged --quiet || git commit -m "ci: update image tags to ${{ github.sha }}"
-          git push https://${{ github.actor }}:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }}
+          git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }}
