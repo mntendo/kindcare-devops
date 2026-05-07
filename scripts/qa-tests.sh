@@ -3,11 +3,10 @@ set -e
 
 echo "=== QA INTEGRATION TESTS ==="
 
-# Start services with docker compose
 echo "--- Starting services ---"
 docker compose up -d --build
-echo "Waiting for services to be ready..."
-sleep 20
+echo "Waiting for all services to be healthy..."
+docker compose wait triage-service bed-service alerts-service 2>/dev/null || sleep 30
 
 # Test 1 - Frontend health
 echo "--- Test 1: Frontend health ---"
@@ -40,8 +39,5 @@ curl -sf http://localhost:3002/beds | grep -q "ward" && echo "✓ Beds available
 echo "--- Test 7: Alerts endpoint ---"
 curl -sf http://localhost:3003/alerts && echo "✓ Alerts endpoint working" || { echo "FAIL: Alerts endpoint"; docker compose down; exit 1; }
 
-# Teardown
-echo "--- Tearing down ---"
 docker compose down
-
 echo "=== ALL QA TESTS PASSED ==="

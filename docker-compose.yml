@@ -1,5 +1,4 @@
-version: '3.8'
-
+# Remove the version line entirely
 services:
   db:
     image: postgres:15-alpine
@@ -29,6 +28,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   bed-service:
     build: ./services/bed-service
@@ -42,6 +46,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   alerts-service:
     build: ./services/alerts-service
@@ -55,15 +64,23 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   frontend:
     build: ./frontend
     ports:
       - "8080:80"
     depends_on:
-      - triage-service
-      - bed-service
-      - alerts-service
+      triage-service:
+        condition: service_healthy
+      bed-service:
+        condition: service_healthy
+      alerts-service:
+        condition: service_healthy
 
 volumes:
   pgdata:
