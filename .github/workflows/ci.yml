@@ -37,7 +37,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: bash scripts/02-update-manifests.sh
 
-     s- name: Commit updated manifests
+      - name: Commit updated manifests
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
