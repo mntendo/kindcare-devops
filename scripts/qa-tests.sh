@@ -6,7 +6,7 @@ echo "=== QA INTEGRATION TESTS ==="
 echo "--- Starting services ---"
 docker compose up -d --build
 echo "Waiting for all services to be healthy..."
-docker compose wait triage-service bed-service alerts-service 2>/dev/null || sleep 30
+sleep 30
 
 # Test 1 - Frontend health
 echo "--- Test 1: Frontend health ---"
