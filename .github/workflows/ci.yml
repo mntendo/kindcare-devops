@@ -5,7 +5,8 @@ on:
     branches: [dev, qa]
   pull_request:
     branches: [uat, main]
-
+  schedule:
+    - cron: '0 0 * * *'  # Every night at midnight UTC
 jobs:
   build:
     runs-on: ubuntu-latest
