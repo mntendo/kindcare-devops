@@ -28,8 +28,10 @@ curl -sf http://localhost:3003/health && echo "✓ Alerts healthy" || { echo "FA
 echo "--- Test 5: Create patient ---"
 RESPONSE=$(curl -sf -X POST http://localhost:3001/patients \
   -H "Content-Type: application/json" \
-  -d '{"name":"QA Test Patient","chiefComplaint":"chest pain","heartRate":145,"bpSystolic":85,"o2Sat":88,"temperature":99.1,"respiratoryRate":28,"painLevel":9,"consciousness":"Alert"}')
-echo $RESPONSE | grep -q "id" && echo "✓ Patient created" || { echo "FAIL: Patient creation"; docker compose down; exit 1; }
+  -d '{"firstName":"QA","lastName":"Test","dob":"1990-01-01","gender":"Female","chiefComplaint":"chest pain","heartRate":145,"bloodPressureSystolic":85,"bloodPressureDiastolic":60,"oxygenSaturation":88,"temperature":99.1,"respiratoryRate":28,"painLevel":9,"consciousnessLevel":"Alert"}')
+echo $RESPONSE | grep -q "triage_level" && echo "✓ Patient created with triage level" || { echo "FAIL: Patient creation"; docker compose down; exit 1; }
+
+
 
 # Test 6 - Check bed availability
 echo "--- Test 6: Bed availability ---"
