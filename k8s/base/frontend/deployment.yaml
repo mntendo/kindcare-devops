@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: 923080620566.dkr.ecr.us-east-1.amazonaws.com/kindcare/frontend:14a78d08627d23bfbd5c6b4b19351b3cd41789b5
+          image: 923080620566.dkr.ecr.us-east-1.amazonaws.com/kindcare/frontend:721499d9db253f1cdf81ae2a55c3e944fa220e92
           ports:
             - containerPort: 80
           readinessProbe:
