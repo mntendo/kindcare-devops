@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: bed-service
-          image: 923080620566.dkr.ecr.us-east-1.amazonaws.com/kindcare/bed-service:721499d9db253f1cdf81ae2a55c3e944fa220e92
+          image: 923080620566.dkr.ecr.us-east-1.amazonaws.com/kindcare/bed-service:1d23746d2fe22aa9905ada16076d6eec34892b5e
           ports:
             - containerPort: 3002
           env:
