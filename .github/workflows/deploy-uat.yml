@@ -46,6 +46,15 @@ jobs:
           AWS_REGION: us-east-1
           IMAGE_TAG: ${{ github.sha }}
         run: bash scripts/02-update-manifests.sh
+      
+      - name: Debug secrets
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: ${{ secrets.DB_HOST_DEV }}
+        run: |
+          echo "DB_HOST length: ${#DB_HOST}"
+          echo "DB_PASSWORD length: ${#DB_PASSWORD}"
+          echo "DB_HOST starts with: ${DB_HOST:0:10}"
 
       - name: Deploy to EKS
         env:
