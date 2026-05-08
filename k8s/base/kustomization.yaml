@@ -11,4 +11,3 @@ resources:
   - alerts-service/service.yaml
   - frontend/deployment.yaml
   - frontend/service.yaml
-  - frontend/ingress.yaml
