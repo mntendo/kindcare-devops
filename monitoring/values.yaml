@@ -52,3 +52,4 @@ alertmanager:
         email_configs:
           - to: 'mntendo@dons.usfca.edu'
             send_resolved: true
+      - name: 'null'
