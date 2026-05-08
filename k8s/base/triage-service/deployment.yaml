@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: triage-service
-          image: 923080620566.dkr.ecr.us-east-1.amazonaws.com/kindcare/triage-service:2ed75cd4cb96f7b2efcf43d1f67f612814569fb6
+          image: 923080620566.dkr.ecr.us-east-1.amazonaws.com/kindcare/triage-service:14a78d08627d23bfbd5c6b4b19351b3cd41789b5
           ports:
             - containerPort: 3001
           env:
