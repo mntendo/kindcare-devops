@@ -47,13 +47,6 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: bash scripts/02-update-manifests.sh
 
-      - name: Apply Terraform
-        env:
-          AWS_REGION: us-east-1
-          ENVIRONMENT: dev
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        run: bash scripts/03-terraform-apply.sh
-
       - name: Deploy to EKS
         env:
           AWS_REGION: us-east-1
