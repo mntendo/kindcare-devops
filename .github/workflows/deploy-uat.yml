@@ -64,6 +64,14 @@ jobs:
 
       - name: Smoke test
         run: bash scripts/05-smoke-test.sh
+      
+      - name: Run UAT tests
+        run: |
+          docker compose up -d --build
+          sleep 30
+          bash scripts/uat-tests.sh
+          docker compose down
+
 
       - name: Notify
         env:

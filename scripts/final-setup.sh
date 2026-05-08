@@ -1,14 +1,13 @@
 #!/bin/bash
 set -e
 
-echo "========================================="
-echo "   KINDCARE - FINAL SETUP SCRIPT"
-echo "========================================="
+echo "KINDCARE - FINAL SETUP SCRIPT"
 
 CLUSTER_NAME="kindcare-dev"
 REGION="us-east-1"
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 ECR_REGISTRY="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com"
+
 
 # STEP 1 - Terraform
 echo ""
@@ -19,11 +18,13 @@ cd terraform/environments/dev
 cd ../../..
 echo "✓ Infrastructure ready"
 
+
 # STEP 2 - Connect to EKS
 echo ""
 echo "--- STEP 2: Connect to EKS ---"
 aws eks update-kubeconfig --name $CLUSTER_NAME --region $REGION
 echo "✓ Connected to EKS"
+
 
 # STEP 3 - Create node group
 echo ""
@@ -48,6 +49,7 @@ aws eks wait nodegroup-active \
   --region $REGION
 echo "✓ Nodes ready"
 
+
 # STEP 4 - Install Nginx Ingress
 echo ""
 echo "--- STEP 4: Install Nginx Ingress ---"
@@ -58,6 +60,7 @@ kubectl wait --namespace ingress-nginx \
   --timeout=120s
 echo "✓ Ingress ready"
 
+
 # STEP 5 - Login to ECR and push images
 echo ""
 echo "--- STEP 5: Push Docker Images to ECR ---"
@@ -65,6 +68,7 @@ aws ecr get-login-password --region $REGION | \
   docker login --username AWS --password-stdin $ECR_REGISTRY
 bash scripts/01-build-images.sh
 echo "✓ Images pushed"
+
 
 # STEP 6 - Create namespace and secrets
 echo ""
@@ -85,6 +89,7 @@ kubectl create secret generic kindcare-db-secret \
   --dry-run=client -o yaml | kubectl apply -f -
 echo "✓ Secrets created"
 
+
 # STEP 7 - Deploy KindCare
 echo ""
 echo "--- STEP 7: Deploy KindCare ---"
@@ -96,6 +101,7 @@ kubectl rollout status deployment/alerts-service -n kindcare --timeout=300s
 kubectl rollout status deployment/frontend -n kindcare --timeout=300s
 echo "✓ KindCare deployed"
 
+
 # STEP 8 - Install cert-manager
 echo ""
 echo "--- STEP 8: Install cert-manager ---"
@@ -104,6 +110,7 @@ kubectl wait --for=condition=ready pod --all -n cert-manager --timeout=120s
 kubectl apply -f k8s/cert-manager/cluster-issuer.yaml
 kubectl apply -f k8s/cert-manager/grafana-ingress.yaml
 echo "✓ cert-manager ready"
+
 
 # STEP 9 - Install Argo CD
 echo ""
@@ -114,6 +121,7 @@ kubectl wait --for=condition=ready pod --all -n argocd --timeout=300s
 kubectl apply -f argocd/kindcare-app.yaml
 echo "✓ Argo CD ready"
 
+
 # STEP 10 - Install Prometheus and Grafana
 echo ""
 echo "--- STEP 10: Install Monitoring Stack ---"
@@ -122,22 +130,23 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
 
-# Create Grafana secrets
-kubectl create secret generic grafana-secrets \
+# Create GitHub OAuth secret for Grafana
+kubectl create secret generic grafana-github-secret \
   --namespace monitoring \
-  --from-literal=github-secret=$GRAFANA_GITHUB_SECRET \
-  --from-literal=gmail-password=$GMAIL_APP_PASSWORD \
+  --from-literal=GF_AUTH_GITHUB_CLIENT_SECRET=$GRAFANA_GITHUB_SECRET \
   --dry-run=client -o yaml | kubectl apply -f -
 
 helm upgrade --install prometheus-stack prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
   --values monitoring/values.yaml \
-  --set grafana.envFromSecret=grafana-secrets
+  --set grafana.envFromSecret=grafana-github-secret
+
 helm upgrade --install loki grafana/loki-stack \
   --namespace monitoring \
   --set promtail.enabled=true \
   --set loki.enabled=true \
   --set grafana.enabled=false
+
 kubectl apply -f monitoring/alert-rules.yaml
 echo "✓ Monitoring ready"
 
@@ -161,29 +170,28 @@ aws ec2 authorize-security-group-ingress \
   --region $REGION 2>/dev/null || echo "Rule already exists"
 echo "✓ Security group fixed"
 
-# STEP 12 - Update Route 53 with Load Balancer
+
+# STEP 12 - Update Route 53 CNAME with Load Balancer
 echo ""
 echo "--- STEP 12: Update DNS ---"
 echo "Waiting for load balancer..."
 sleep 60
 LB_URL=$(kubectl get svc -n ingress-nginx ingress-nginx-controller \
   -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-
-cd terraform/environments/dev
-/usr/local/bin/terraform apply \
-  -var="db_password=KindCare2024x" \
-  -var="load_balancer_hostname=$LB_URL" \
-  -auto-approve
-cd ../../..
+HOSTED_ZONE_ID=$(aws route53 list-hosted-zones \
+  --query "HostedZones[?Name=='mariamdevops.com.'].Id" \
+  --output text | cut -d'/' -f3)
+aws route53 change-resource-record-sets \
+  --hosted-zone-id $HOSTED_ZONE_ID \
+  --change-batch "{\"Changes\":[{\"Action\":\"UPSERT\",\"ResourceRecordSet\":{\"Name\":\"kindcare.mariamdevops.com\",\"Type\":\"CNAME\",\"TTL\":300,\"ResourceRecords\":[{\"Value\":\"$LB_URL\"}]}},{\"Action\":\"UPSERT\",\"ResourceRecordSet\":{\"Name\":\"grafana.mariamdevops.com\",\"Type\":\"CNAME\",\"TTL\":300,\"ResourceRecords\":[{\"Value\":\"$LB_URL\"}]}}]}"
 echo "✓ DNS updated"
+
 
 # STEP 13 - Final status
 echo ""
-echo "========================================="
-echo "   KINDCARE IS LIVE!"
-echo "   App:     https://kindcare.mariamdevops.com"
-echo "   Grafana: https://grafana.mariamdevops.com"
-echo "========================================="
+echo "KINDCARE IS LIVE!"
+echo "  App:     https://kindcare.mariamdevops.com"
+echo "  Grafana: https://grafana.mariamdevops.com"
 echo ""
 kubectl get pods -n kindcare
 kubectl get pods -n monitoring
