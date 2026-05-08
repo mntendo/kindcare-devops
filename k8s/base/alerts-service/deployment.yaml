@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: alerts-service
-          image: 923080620566.dkr.ecr.us-east-1.amazonaws.com/kindcare/alerts-service:84c7fcdace0848bb7d3df8dbc96352844bb64534
+          image: 923080620566.dkr.ecr.us-east-1.amazonaws.com/kindcare/alerts-service:148ba07ccbac4035bd2d297c1f47525de9038a2d
           ports:
             - containerPort: 3003
           env:
