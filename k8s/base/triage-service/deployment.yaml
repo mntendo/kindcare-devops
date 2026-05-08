@@ -40,6 +40,8 @@ spec:
                 secretKeyRef:
                   name: kindcare-db-secret
                   key: username
+            - name: NODE_ENV
+              value: "production"
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
