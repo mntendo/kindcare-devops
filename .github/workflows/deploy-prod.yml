@@ -48,26 +48,24 @@ jobs:
           IMAGE_TAG: ${{ github.ref_name }}
         run: bash scripts/02-update-manifests.sh
 
-      - name: Apply Terraform
-        env:
-          AWS_REGION: us-east-1
-          ENVIRONMENT: prod
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        run: bash scripts/03-terraform-apply.sh
-
       - name: Deploy to EKS
         env:
           AWS_REGION: us-east-1
-          ENVIRONMENT: prod
+          ENVIRONMENT: dev
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ secrets.DB_HOST_PROD }}
+          DB_HOST: ${{ secrets.DB_HOST_DEV }}
         run: bash scripts/04-deploy-to-eks.sh
 
       - name: Smoke test
         run: bash scripts/05-smoke-test.sh
 
+      - name: Production smoke test
+        env:
+          PROD_URL: https://kindcare.mariamdevops.com
+        run: bash scripts/prod-smoke-test.sh
+
       - name: Notify
         env:
-          ENVIRONMENT: prod
+          ENVIRONMENT: production
           IMAGE_TAG: ${{ github.ref_name }}
         run: bash scripts/06-notify.sh
