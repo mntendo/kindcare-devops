@@ -23,4 +23,9 @@ kubectl create secret generic kindcare-db-secret \
 # Apply the correct overlay based on environment
 kubectl apply -k k8s/overlays/$ENVIRONMENT
 
+# Ensure NODE_ENV is set for production RDS SSL
+kubectl set env deployment/triage-service deployment/bed-service deployment/alerts-service \
+  --namespace=kindcare NODE_ENV=production
+
+
 echo "=== Deployment applied ==="
